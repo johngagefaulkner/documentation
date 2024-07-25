@@ -1,7 +1,7 @@
 ---
-title: 'Code Blocks'
-description: 'Display inline code and code blocks'
-icon: 'code'
+title: "Code Blocks"
+description: "Display inline code and code blocks"
+icon: "code"
 ---
 
 ## Basic
@@ -25,6 +25,128 @@ class HelloWorld {
     }
 }
 ```
+
+---
+
+```csharp HttpListenerService.cs
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Text;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System;
+using System.Net.Http;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+
+namespace Services
+{
+    internal class HttpListenerService
+    {
+        // 37175
+        public int CustomPort { get; private set; }
+        public List<string> Prefixes { get; private set; }
+        public HttpListener CustomHttpListener { get; private set; }
+
+        public HttpListenerService(int _port)
+        {
+            CustomPort = _port;
+            Prefixes = GetPrefixes(_port);
+            CustomHttpListener = new HttpListener();
+            foreach (var prefix in Prefixes)
+            {
+                CustomHttpListener.Prefixes.Add(prefix);
+            }
+        }
+
+        private static List<string> GetPrefixes(int _port) => new List<string>() { $"http://*:{_port}/", $"http://localhost:{_port}/", $"http://127.0.0.1:{_port}" };
+
+        public void StartHttpListener()
+        {
+            CustomHttpListener.Start();
+            Console.WriteLine("Listening...");
+
+            while (true)
+            {
+                var context = CustomHttpListener.GetContext();
+                var request = context.Request;
+
+                Console.WriteLine($"Request received: {request.HttpMethod} {request.Url}");
+
+                using (var writer = new StreamWriter(context.Response.OutputStream))
+                {
+                    writer.Write("Hello, World!");
+                }
+            }
+        }
+
+        public (bool, string) BeginListening()
+        {
+            try
+            {
+                if (!HttpListener.IsSupported)
+                {
+                    var errorMsg = "[ERROR] Windows XP SP2 or Server 2003 is required to use the HttpListener class.";
+                    return (false, errorMsg);
+                }
+
+                StringBuilder sb = new();
+
+                CustomHttpListener.Start();
+                sb.AppendLine($"[{DateTime.Now}] Listening...");
+                while (true)
+                {
+                    // Note: The GetContext method blocks while waiting for a request.
+                    HttpListenerContext context = CustomHttpListener.GetContext();
+                    HttpListenerRequest request = context.Request;
+
+                    string documentContents;
+                    using (Stream receiveStream = request.InputStream)
+                    {
+                        using (StreamReader readStream = new StreamReader(receiveStream, Encoding.UTF8))
+                        {
+                            documentContents = readStream.ReadToEnd();
+                        }
+                    }
+
+                    sb.AppendLine($"[{DateTime.Now}] Received request for {request.Url}");
+                    sb.AppendLine($"[{DateTime.Now}] {documentContents}");
+
+                    // Obtain a response object.
+                    HttpListenerResponse response = context.Response;
+
+                    // Construct a response.
+                    string responseString = "<HTML><HEAD><TITLE>Login Successful! | Wafer Launcher</TITLE></HEAD><BODY Style='background-color: ##161c2d;'>Hello world!</BODY></HTML>";
+                    string responseHtml = responseString.Replace("'", "\"");
+                    byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseHtml);
+
+                    // Get a response stream and write the response to it.
+                    response.ContentLength64 = buffer.Length;
+                    System.IO.Stream output = response.OutputStream;
+                    output.Write(buffer, 0, buffer.Length);
+
+                    // You must close the output stream.
+                    output.Close();
+                }
+
+                CustomHttpListener.Stop();
+                return (true, "Listening...");
+            }
+
+            catch (Exception ex)
+            {
+                var errorMsg = $"[ERROR] {ex.Message}";
+                return (false, errorMsg);
+            }
+        }
+    }
+}
+```
+
+---
 
 ````md
 ```java HelloWorld.java
